@@ -1,0 +1,46 @@
+name: iOS Pull Request
+on:
+  pull_request:
+    branches:
+      - develop
+jobs:
+  # CI
+  deploy_ios:
+    name: Build Flutter (iOS)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          access_token: ${{ github.token }}
+      
+      # - uses: maxim-lobanov/setup-xcode@v1
+      #   with:
+      #     xcode-version: '14.1'
+
+      - name: Run Flutter tasks
+        uses: subosito/flutter-action@v1
+        with:
+          flutter-version: '3.3.10'
+
+      - name: CocoaPod Install
+        run: cd ./ios && pod install
+      
+      - name: Install Bundler
+        run: cd ./ios && gem install bundler
+
+      - name: Install gems
+        run: cd ./ios && bundle install
+      
+      - run: flutter clean
+      
+      - run: flutter pub get
+      
+      - name: Deploy iOS Beta to AppCenter via Fastlane
+        run: |
+            cd ./ios && bundle exec fastlane ios dev
+        env:
+          GIT_AUTHORIZATION: '${{ secrets.GIT_AUTHORIZATION }}'
