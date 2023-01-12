@@ -32,3 +32,14 @@ Runner/GeneratedPluginRegistrant.*
 !default.mode2v3
 !default.pbxuser
 !default.perspectivev3
+
+# Build
+*.ipa
+*.dSYM.zip
+
+# evn secrets
+.env
+
+# Fastlane
+/fastlane/report.xml
+/fastlane/test_output
