@@ -121,45 +121,45 @@ platform :ios do
     )
 
     create_keychain(
-        name: TEMP_KEYCHAIN_USER,
-        password: TEMP_KEYCHAIN_PASSWORD,
-        default_keychain: false,
-        unlock: true,
-        timeout: 3600,
-        lock_when_sleeps: false
+      name: TEMP_KEYCHAIN_USER,
+      password: TEMP_KEYCHAIN_PASSWORD,
+      default_keychain: false,
+      unlock: true,
+      timeout: 3600,
+      lock_when_sleeps: false
     )
   end
 
   private_lane :appCenter do |options|
     # Upload the app
     appcenter_upload(
-        api_token: APP_CENTER_API_TOKEN,
-        owner_name: APP_CENTER_OWNER_NAME,
-        app_name: APP_CENTER_APP_NAME,
-        destinations: options[:groups],
-        release_notes: (options[:scheme].include? "Release") ? "RELEASE Build\n=============" : "DEBUG Build\n===========",
-        notify_testers: true,
-        app_os: "ios",
-        # owner_type: "organization",
-        ipa: "./Runner.ipa"
+      api_token: APP_CENTER_API_TOKEN,
+      owner_name: APP_CENTER_OWNER_NAME,
+      app_name: APP_CENTER_APP_NAME,
+      destinations: options[:groups],
+      release_notes: (options[:scheme].include? "Release") ? "RELEASE Build\n=============" : "DEBUG Build\n===========",
+      notify_testers: true,
+      app_os: "ios",
+      # owner_type: "organization",
+      ipa: "./Runner.ipa"
     )
   end
 
   private_lane :build do |options|
     gym(
-        scheme: options[:scheme],
-        configuration: options[:configuration],
-        workspace: WORKSPACE,
-        export_method: options[:export_method],
-        export_options: {
-          provisioningProfiles: { 
-            BUNDLE_IDENTIFIER => options[:provisioning_profiles]
-          }
-        },
-        xcargs: "-allowProvisioningUpdates",
-        export_xcargs: "-allowProvisioningUpdates",
-        suppress_xcode_output: true,
-        clean: true
+      scheme: options[:scheme],
+      configuration: options[:configuration],
+      workspace: WORKSPACE,
+      export_method: options[:export_method],
+      export_options: {
+        provisioningProfiles: { 
+          BUNDLE_IDENTIFIER => options[:provisioning_profiles]
+        }
+      },
+      xcargs: "-allowProvisioningUpdates",
+      export_xcargs: "-allowProvisioningUpdates",
+      suppress_xcode_output: true,
+      clean: true
     )
     # testflight(app_identifier: "#{BUNDLE_IDENTIFIER}", changelog: options[:changelog], skip_waiting_for_build_processing: true)
   end
@@ -196,9 +196,9 @@ platform :ios do
   after_all do |lane|
     # This block is called, only if the executed lane was successful
     copy_artifacts(
-        target_path: "artifacts",
-        artifacts: ["*.cer", "*.mobileprovision", "*.ipa", "*.dSYM.zip"],
-        keep_original: false
+      target_path: "artifacts",
+      artifacts: ["*.cer", "*.mobileprovision", "*.ipa", "*.dSYM.zip"],
+      keep_original: false
     )
   end
 
