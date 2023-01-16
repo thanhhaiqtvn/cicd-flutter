@@ -1,0 +1,107 @@
+name: Android Deployment
+on:
+  pull_request:
+    branches:
+      - develop
+jobs:
+  # CI
+  build_apk:
+    name: Build Flutter (Android)
+    runs-on: ubuntu-latest   
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v1
+
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          access_token: ${{ github.token }}
+    
+      - uses: actions/setup-java@v1
+        with:
+          java-version: "12.x"
+      
+      - uses: subosito/flutter-action@v1
+        with:
+          channel: "stable"
+        env:
+          KEY_JKS: ${{ secrets.RELEASE_KEYSTORE }}
+          SIGNING_KEY_ALIAS: ${{ secrets.ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.ALIAS_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      
+      - name: Decode Keystore
+        run: |
+          echo "${{secrets.RELEASE_KEYSTORE}}" > release.keystore.asc
+          gpg -d --passphrase "${{secrets.RELEASE_KEYSTORE_PASSPHRASE}}" --batch release.keystore.asc > android/key.jks
+      
+      - name: Create key.properties
+        run: |
+          touch android/key.properties
+          echo "storePassword=${{ secrets.KEY_PASSWORD }}
+          keyPassword=${{ secrets.ALIAS_PASSWORD }}
+          keyAlias=${{ secrets.ALIAS }}
+          storeFile=../key.jks" > ./android/key.properties
+      
+      - name: Get dependencies
+        run: flutter pub get
+      
+      - name: Build APK
+        run: flutter build apk
+      
+      - uses: actions/upload-artifact@v1      
+        with:        
+          name: release-apk        
+          path: build/app/outputs/apk/release/app-release.apk
+  
+  # CD
+  beta_apk:
+    name: Upload Android Beta to Firebase App Distribution
+    needs: [build_apk]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v1
+
+      # --------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: npm-
+
+      # - name: Install dependencies
+      #   run: npm ci --ignore-scripts
+      # --------------------------
+      
+      - name: set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      
+      - name: Download Artifact
+        uses: actions/download-artifact@master
+        with:
+          name: release-apk
+      
+      - name: Upload APK
+        uses: wzieba/Firebase-Distribution-Github-Action@v1.2.1
+        with:
+          appId: ${{secrets.FIREBASE_ANDROID_APPID}}
+          token: ${{secrets.FIREBASE_TOKEN}}
+          groups: Beta Testers
+          file: app-release.apk
+
+      # - name: Upload APK - Run Fastlane
+      #   uses: maierj/fastlane-action@v1.4.0
+      #   with:
+      #     lane: deploy
+      #     subdirectory: android
+  
