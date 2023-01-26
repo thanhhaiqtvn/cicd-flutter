@@ -13,39 +13,38 @@
 # Uncomment the line if you want fastlane to automatically update itself
 # update_fastlane
 
+fastlane_version "2.211.0"
+
 default_platform(:android)
 
+# App Center
+APP_CENTER_API_TOKEN            = ENV["APP_CENTER_API_TOKEN"]
+APP_CENTER_OWNER_NAME           = ENV["APP_CENTER_OWNER_NAME"]
+APP_CENTER_APP_NAME             = ENV["APP_CENTER_APP_NAME"]
+
 platform :android do
-  desc "Runs all the tests"
-  lane :test do
-    gradle(task: "test")
-  end
-
-  desc "Submit a new Beta Build to Crashlytics Beta"
-  lane :beta do
-    gradle(task: "clean assembleRelease")
-    crashlytics
   
-    # sh "your_script.sh"
-    # You can also use other beta testing services here
+  desc "build android apk"
+  lane :build do
+    flutter_build(
+      build: "apk",
+      # build_number: {buildNumber}
+    )
   end
 
-  desc "Deploy a new version to the Google Play"
-  lane :deploy do
-    # gradle(task: "clean assembleRelease")
-    gradle(task: "clean")
-    gradle(
-      task: "bundle",
-      build_type: 'Release'
-    )
-    upload_to_play_store(
-      track: 'beta',
-      aab: '../build/app/outputs/bundle/release/app-release.aab',
-      skip_upload_metadata: true,
-      skip_upload_images: true,
-      skip_upload_screenshots: true,
-      release_status: "draft",
-      version_code: flutter_version()["version_code"],
+  desc "upload android apk to app center"
+  lane :upload_to_appcenter do
+    # Upload the app
+    file = '../build/app/outputs/bundle/release/app-release.aab'
+    appcenter_upload(
+      api_token: APP_CENTER_API_TOKEN,
+      owner_name: APP_CENTER_OWNER_NAME,
+      app_name: APP_CENTER_APP_NAME,
+      # destinations: options[:groups],
+      # release_notes: (options[:scheme].include? "Release") ? "RELEASE Build\n=============" : "DEBUG Build\n===========",
+      owner_type: "user", # Default is user - set to organization for appcenter organizations
+      file: '../build/app/outputs/apk/release/app-release.apk', # path of the apk that was built for upload
+      notify_testers: true # Set to false if you don't want to notify testers of your new release (default: `false`)
     )
   end
 end
