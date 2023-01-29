@@ -1,0 +1,65 @@
+name: Android Deployment
+on:
+  pull_request:
+    branches:
+      - develop
+jobs:
+  build_apk:
+    name: Build Flutter (Android)
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v1
+
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          access_token: ${{ github.token }}
+    
+      - uses: actions/setup-java@v1
+        with:
+          java-version: "12.x"
+      
+      - uses: subosito/flutter-action@v1
+        with:
+          flutter-version: 3.3.10
+        env:
+          KEY_JKS: ${{ secrets.RELEASE_KEYSTORE }}
+          SIGNING_KEY_ALIAS: ${{ secrets.ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.ALIAS_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      
+      - name: Decode Keystore
+        run: |
+          echo "${{secrets.RELEASE_KEYSTORE}}" > release.keystore.asc
+          gpg -d --passphrase "${{secrets.RELEASE_KEYSTORE_PASSPHRASE}}" --batch release.keystore.asc > android/key.jks
+      
+      - name: Create key.properties
+        run: |
+          touch android/key.properties
+          echo "storePassword=${{ secrets.KEY_PASSWORD }}
+          keyPassword=${{ secrets.ALIAS_PASSWORD }}
+          keyAlias=${{ secrets.ALIAS }}
+          storeFile=../key.jks" > ./android/key.properties
+
+      - name: Install Bundler
+        run: cd ./ios && gem install bundler
+
+      - name: Install gems
+        run: cd ./ios && bundle install
+
+      - name: Get dependencies
+        run: flutter pub get
+      
+      - name: Build APK
+        run: flutter build apk
+    
+      - name: Deploy Android Beta to AppCenter via Fastlane
+        uses: maierj/fastlane-action@v1.4.0
+        with:
+          lane: upload_to_appcenter
+          subdirectory: android
+        env:
+          APP_CENTER_API_KEY: ${{ secrets.APP_CENTER_API_KEY }}
+          APP_CENTER_API_TOKEN: ${{ secrets.APP_CENTER_API_TOKEN }}

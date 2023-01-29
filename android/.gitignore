@@ -11,3 +11,10 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# evn secrets
+.env
+
+# Fastlane
+/fastlane/report.xml
+/fastlane/test_output
